@@ -5,14 +5,6 @@
 
 #include "BehaviorTree/BlackboardComponent.h"
 
-
-// EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
-// {
-// 	
-// 	OwnerComp.GetBlackboardComponent()->SetValueAsObject("Player", Value);
-// 	// ();
-// 	return EBTNodeResult::Succeeded;
-// }
 EBTNodeResult::Type UReset::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	OwnerComp.GetBlackboardComponent()->SetValueAsObject("Player", nullptr);

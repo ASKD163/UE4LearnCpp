@@ -15,6 +15,8 @@
 #include "Components/Button.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/PawnNoiseEmitterComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -86,6 +88,7 @@ AMyProject2Character::AMyProject2Character()
 
 	// Uncomment the following line to turn motion controllers on by default:
 	//bUsingMotionControllers = true;
+	PawnNoiseEmitter = CreateDefaultSubobject<UPawnNoiseEmitterComponent>(TEXT("PawnNoiseEmitter"));
 
 	killed = 0;
 	Ammo = 30;
@@ -94,7 +97,9 @@ AMyProject2Character::AMyProject2Character()
 	Health = 1.0f;
 	
 	IsSprint = false;
-	Target = 2;
+	Target = 8;
+
+	EnemyInGame = 0;
 }
 
 void AMyProject2Character::BeginPlay()
@@ -127,6 +132,8 @@ void AMyProject2Character::BeginPlay()
 			SetAmmoText(Ammo);
 			SetHealthBarPer(Health);
 			SetStaminaBarPer(Stamina);
+			UI->TargetText->SetText(FText::FromString(FString::FromInt(Target)));
+			
 		}
 	}
 
@@ -181,11 +188,19 @@ void AMyProject2Character::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AMyProject2Character::SprintEnd);
 }
 
+float AMyProject2Character::TakeDamage(float Damage, FDamageEvent const& DamageEvent,
+	AController* EventInstigator, AActor* DamageCauser)
+{
+	SetHealthBarPer(Health - Damage);
+	return Health;
+}
+
 void AMyProject2Character::OnFire()
 {
 	if (Ammo <= 0) return;
 
 	SetAmmoText(--Ammo);
+	PawnNoiseEmitter->MakeNoise(this, 1.0f, GetActorLocation());
 	// try and fire a projectile
 	if (ProjectileClass != nullptr)
 	{
@@ -276,6 +291,7 @@ void AMyProject2Character::SetAmmoText(int num)
 
 void AMyProject2Character::SetHealthBarPer(float num)
 {
+	Health = (num > 0) ? num : 0.f;
 	if (UI && UI->HealthBar) UI->HealthBar->SetPercent(num);
 }
 
@@ -352,7 +368,7 @@ void AMyProject2Character::SprintBegin()
 	if (Stamina <= 0) SprintEnd();
 	IsSprint = true;
 	GetCharacterMovement()-> MaxWalkSpeed = 3000.0f;
-	
+	PawnNoiseEmitter->MakeNoise(this, 1.0f, GetActorLocation());
 	GetWorldTimerManager().SetTimer(InOutHandle,this, &AMyProject2Character::StaminaDrain, 0.1f, true);
 }
 

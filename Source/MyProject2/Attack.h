@@ -4,16 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "Reset.generated.h"
+#include "Attack.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class MYPROJECT2_API UReset : public UBTTaskNode
+class MYPROJECT2_API UAttack : public UBTTaskNode
 {
 	GENERATED_BODY()
-
-public:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	
 };

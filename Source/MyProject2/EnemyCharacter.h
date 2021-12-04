@@ -20,25 +20,28 @@ class MYPROJECT2_API AEnemyCharacter : public ACharacter
 	UPROPERTY()
 	UBlackboardComponent* BlackBoard;
 
-	UPROPERTY(EditInstanceOnly)
-	AActor* PatrolPoint1;
-	
-	UPROPERTY(EditInstanceOnly)
-	AActor* PatrolPoint2;
-
 	UFUNCTION()
 	void SeePawn(APawn* Player);
+
+	UFUNCTION()
+	void OnHearPawn(APawn* Player, const FVector& Location, float Volume);
+
+	int HP;
+
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* Sound;
+
+	UPROPERTY(EditDefaultsOnly)
+	UParticleSystem* Emitter;
+
 	
 public:
 	// Sets default values for this character's properties
 	AEnemyCharacter();
 
-
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+	virtual void NotifyHit(class UPrimitiveComponent* MyComp, AActor* Other, class UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit);
 
-private:
-	AActor* CurrentPoin;
 };

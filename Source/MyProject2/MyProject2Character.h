@@ -6,7 +6,6 @@
 #include "GameFramework/Character.h"
 #include "MyUserWidget.h"
 #include "WinWidget.h"
-#include "GameFramework/CharacterMovementComponent.h"
 
 #include "MyProject2Character.generated.h"
 
@@ -55,6 +54,9 @@ class AMyProject2Character : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UMotionControllerComponent* L_MotionController;
 
+	UPROPERTY(VisibleAnywhere)
+	UPawnNoiseEmitterComponent* PawnNoiseEmitter;
+	
 	UPROPERTY()
 	UMyUserWidget* UI;
 
@@ -88,6 +90,7 @@ class AMyProject2Character : public ACharacter
 public:
 	AMyProject2Character();
 
+	int EnemyInGame;
 protected:
 	virtual void BeginPlay();
 
@@ -125,6 +128,8 @@ public:
 	UPROPERTY()
 	APlayerController* PlayerController;
 
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	
 protected:
 	
 	/** Fires a projectile. */

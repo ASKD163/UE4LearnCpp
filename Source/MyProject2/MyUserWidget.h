@@ -30,6 +30,8 @@ public:
 	UPROPERTY()
 	UProgressBar* StaminaBar;
 
+	UPROPERTY()
+	UTextBlock* TargetText;
 
 protected:
 
