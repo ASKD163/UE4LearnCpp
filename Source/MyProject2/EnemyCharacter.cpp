@@ -37,7 +37,6 @@ void AEnemyCharacter::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPri
 	
 	if (Projectile)
 	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red,"HP");
 		if (HP < 0)
 		{
 			UGameplayStatics::PlaySoundAtLocation(this, Sound, GetActorLocation());
@@ -52,7 +51,7 @@ void AEnemyCharacter::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPri
 		else HP--;
 	}
 
-	if (Player->GetKilled() >= Player->GetTarget()) Player->EndGame();
+	if (Player && Player->GetKilled() >= Player->GetTarget()) Player->EndGame();
 }
 
 void AEnemyCharacter::SeePawn(APawn* Player)

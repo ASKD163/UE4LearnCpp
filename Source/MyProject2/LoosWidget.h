@@ -4,24 +4,20 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "WinWidget.generated.h"
+#include "LoosWidget.generated.h"
 
-class UTextBlock;
 class UButton;
 /**
  * 
  */
 UCLASS()
-class MYPROJECT2_API UWinWidget : public UUserWidget
+class MYPROJECT2_API ULoosWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
 public:
 	UPROPERTY()
-	UTextBlock* RoundText;
-	
-	UPROPERTY()
-	UButton* PlayButton;
+	UButton* RePlayButton;
 
 	UPROPERTY()
 	UButton* ExitButton;

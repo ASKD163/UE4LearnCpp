@@ -6,7 +6,9 @@
 #include "GameFramework/Character.h"
 #include "MyUserWidget.h"
 #include "WinWidget.h"
-
+#include "LoosWidget.h"
+#include "MySaveGame.h"
+#include "PauseWidget.h"
 #include "MyProject2Character.generated.h"
 
 class UInputComponent;
@@ -63,11 +65,23 @@ class AMyProject2Character : public ACharacter
 	UPROPERTY()
 	UWinWidget* WinUI;
 
+	UPROPERTY()
+	ULoosWidget* LoosUI;
+	
+	UPROPERTY()
+	UPauseWidget* PauseUI;
+
 	UPROPERTY(EditDefaultsOnly, Category = UI)
 	TSubclassOf<class UMyUserWidget> WidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = UI)
 	TSubclassOf<class UWinWidget> WinUIWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = UI)
+	TSubclassOf<class ULoosWidget> LoosUIWidget;
+
+	UPROPERTY(EditDefaultsOnly, Category = UI)
+	TSubclassOf<class UPauseWidget> PauseUIWidget;
 
 	UPROPERTY(VisibleAnywhere)
 	int32 killed;
@@ -78,6 +92,10 @@ class AMyProject2Character : public ACharacter
 	float Stamina;
 	float Health;
 	bool IsSprint;
+
+	FString SaveSlot;
+
+	bool IsLoos;
 
 	void SprintBegin();
 	void SprintEnd();
@@ -127,6 +145,8 @@ public:
 
 	UPROPERTY()
 	APlayerController* PlayerController;
+
+	UMySaveGame* SaveGame;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	
@@ -202,8 +222,17 @@ public:
 
 	UFUNCTION()
 	void RePlay();
+	
+	UFUNCTION()
+	void PlayFromBegin();
 
 	UFUNCTION()
 	void Exit();
+
+	UFUNCTION()
+	void PauseCallBack();
+
+	UFUNCTION()
+	void Continue();
 };
 

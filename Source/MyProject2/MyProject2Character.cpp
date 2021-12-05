@@ -52,7 +52,7 @@ AMyProject2Character::AMyProject2Character()
 	FP_Gun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
 	FP_Gun->bCastDynamicShadow = false;
 	FP_Gun->CastShadow = false;
-	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 	FP_Gun->SetupAttachment(RootComponent);
 
 	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
@@ -97,15 +97,29 @@ AMyProject2Character::AMyProject2Character()
 	Health = 1.0f;
 	
 	IsSprint = false;
-	Target = 8;
+	//Target = 0;
 
 	EnemyInGame = 0;
+	IsLoos = false;
+
+	SaveSlot = "Save";
 }
 
 void AMyProject2Character::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	if (UGameplayStatics::DoesSaveGameExist(SaveSlot, 0))
+		SaveGame = Cast<UMySaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlot,0));
+	else
+	{
+		SaveGame = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+		//SaveGame = UGameplayStatics::CreateSaveGameObject(SaveGameClass);
+		if (SaveGame) SaveGame->CurrentRound = 1;
+		UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlot, 0);
+	}
+	if (SaveGame) Target = SaveGame->CurrentRound * 2;
 
 	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
 	FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
@@ -144,7 +158,6 @@ void AMyProject2Character::BeginPlay()
 void AMyProject2Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
 	FLatentActionInfo LatentInfo;
 	LatentInfo.Linkage = 1;
 	LatentInfo.CallbackTarget = this;
@@ -186,12 +199,19 @@ void AMyProject2Character::SetupPlayerInputComponent(class UInputComponent* Play
 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AMyProject2Character::SprintBegin);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AMyProject2Character::SprintEnd);
+
+	PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &AMyProject2Character::PauseCallBack);
 }
 
 float AMyProject2Character::TakeDamage(float Damage, FDamageEvent const& DamageEvent,
 	AController* EventInstigator, AActor* DamageCauser)
 {
 	SetHealthBarPer(Health - Damage);
+	if (Health == 0)
+	{
+		IsLoos = true;
+		EndGame();
+	}
 	return Health;
 }
 
@@ -318,49 +338,146 @@ int AMyProject2Character::GetTarget()
 void AMyProject2Character::EndGame()
 {
 	UGameplayStatics::SetGamePaused(GetWorld(), true);
-	if (WinUIWidget)
+	if (IsLoos)
 	{
-		WinUI = CreateWidget<UWinWidget>(GetWorld(), WinUIWidget);
-		if (PlayerController)
+		if (LoosUIWidget)
 		{
-			PlayerController->bShowMouseCursor = true;
-			FInputModeUIOnly InData;
-			PlayerController->SetInputMode(InData);
-		}
+			LoosUI = CreateWidget<ULoosWidget>(GetWorld(), LoosUIWidget);
+			if (PlayerController)
+			{
+				PlayerController->bShowMouseCursor = true;
+				FInputModeUIOnly InData;
+				PlayerController->SetInputMode(InData);
+			}
 
-		if (WinUI) WinUI->AddToViewport(0);
-		if (WinUI && WinUI->RePlayButton)
-		{
-			FScriptDelegate InDelegate;
-			InDelegate.BindUFunction(this, "RePlay");
-			WinUI->RePlayButton->OnPressed.Add(InDelegate);
-		}
-		if (WinUI && WinUI->ExitButton)
-		{
-			FScriptDelegate InDelegate;
-			InDelegate.BindUFunction(this, "Exit");
-			WinUI->ExitButton->OnPressed.Add(InDelegate);
+			if (LoosUI) LoosUI->AddToViewport(0);
+			if (LoosUI && LoosUI->RePlayButton)
+			{
+				FScriptDelegate InDelegate;
+				InDelegate.BindUFunction(this, "RePlay");
+				LoosUI->RePlayButton->OnPressed.Add(InDelegate);
+			}
+			if (LoosUI && LoosUI->ExitButton)
+			{
+				FScriptDelegate InDelegate;
+				InDelegate.BindUFunction(this, "Exit");
+				LoosUI->ExitButton->OnPressed.Add(InDelegate);
+			}
 		}
 	}
-	
+	else
+	{
+		if (SaveGame) SaveGame->CurrentRound++;
+		UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlot, 0);
+		if (WinUIWidget)
+		{
+			WinUI = CreateWidget<UWinWidget>(GetWorld(), WinUIWidget);
+			if (PlayerController)
+			{
+				PlayerController->bShowMouseCursor = true;
+				FInputModeUIOnly InData;
+				PlayerController->SetInputMode(InData);
+			}
+			if (WinUI) WinUI->AddToViewport(0);
+			if (WinUI && WinUI->PlayButton)
+			{
+				FScriptDelegate InDelegate;
+				InDelegate.BindUFunction(this, "RePlay");
+				WinUI->PlayButton->OnPressed.Add(InDelegate);
+			}
+			if (WinUI && WinUI->ExitButton)
+			{
+				FScriptDelegate InDelegate;
+				InDelegate.BindUFunction(this, "Exit");
+				WinUI->ExitButton->OnPressed.Add(InDelegate);
+			}
+			if (WinUI && WinUI->RoundText)
+			{
+				FString A = FString::Printf(TEXT("ROUND. %d"), SaveGame->CurrentRound);
+				WinUI->RoundText->SetText(FText::FromString(A));
+			}
+		}
+	}
 }
 
 void AMyProject2Character::RePlay()
 {
 	UGameplayStatics::OpenLevel(this, "FirstPersonExampleMap");
-	WinUI->RemoveFromParent();
+	if (WinUI) WinUI->RemoveFromParent();
+	else LoosUI->RemoveFromParent();
 	if (PlayerController)
 	{
 		PlayerController->bShowMouseCursor = false;
 		FInputModeGameOnly InData;
 		PlayerController->SetInputMode(InData);
 	}
+}
 
+void AMyProject2Character::PlayFromBegin()
+{
+	//
+	SaveGame->CurrentRound = 1;
+	UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlot, 0);
+	UGameplayStatics::OpenLevel(GetWorld(), "FirstPersonExampleMap");
+	if (PauseUI) PauseUI->RemoveFromParent();
+	if (PlayerController)
+	{
+		PlayerController->bShowMouseCursor = false;
+		FInputModeGameOnly InData;
+		PlayerController->SetInputMode(InData);
+	}
 }
 
 void AMyProject2Character::Exit()
 {
 	UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, false);
+}
+
+void AMyProject2Character::PauseCallBack()
+{
+	UGameplayStatics::SetGamePaused(GetWorld(), true);
+	PauseUI = CreateWidget<UPauseWidget>(GetWorld(), PauseUIWidget);
+	PauseUI->AddToViewport(0);
+	//Mouse Input
+	if (PlayerController)
+	{
+		PlayerController->bShowMouseCursor = true;
+		FInputModeUIOnly UIOnly;
+		PlayerController->SetInputMode(UIOnly);
+	}
+	//Bind Button
+	if (PauseUI && PauseUI->PlayButton)
+	{
+		FScriptDelegate InDelegate1;
+		InDelegate1.BindUFunction(this, "Continue");
+		PauseUI->PlayButton->OnPressed.Add(InDelegate1);
+	}
+
+	if (PauseUI && PauseUI->RePlayButton)
+	{
+		FScriptDelegate InDelegate2;
+		InDelegate2.BindUFunction(this, "PlayFromBegin");
+		PauseUI->RePlayButton->OnPressed.Add(InDelegate2);
+	}
+
+	if (PauseUI && PauseUI->ExitButton)
+	{
+		FScriptDelegate InDelegate3;
+		InDelegate3.BindUFunction(this, "Exit");
+		PauseUI->ExitButton->OnPressed.Add(InDelegate3);
+	}
+}
+
+void AMyProject2Character::Continue()
+{
+	UGameplayStatics::SetGamePaused(this, false);
+	if (PlayerController)
+	{
+		PlayerController->bShowMouseCursor = false;
+		FInputModeGameOnly GameOnly;
+		PlayerController->SetInputMode(GameOnly);
+	}
+	PauseUI->RemoveFromParent();
 }
 
 void AMyProject2Character::SprintBegin()
@@ -391,45 +508,6 @@ void AMyProject2Character::StaminaAdd()
 	Stamina = Stamina <= 1.0f ? Stamina + 0.1f : 1.0f;
 	SetStaminaBarPer(Stamina);
 }
-
-
-//Commenting this section out to be consistent with FPS BP template.
-//This allows the user to turn without using the right virtual joystick
-
-//void AMyProject2Character::TouchUpdate(const ETouchIndex::Type FingerIndex, const FVector Location)
-//{
-//	if ((TouchItem.bIsPressed == true) && (TouchItem.FingerIndex == FingerIndex))
-//	{
-//		if (TouchItem.bIsPressed)
-//		{
-//			if (GetWorld() != nullptr)
-//			{
-//				UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport();
-//				if (ViewportClient != nullptr)
-//				{
-//					FVector MoveDelta = Location - TouchItem.Location;
-//					FVector2D ScreenSize;
-//					ViewportClient->GetViewportSize(ScreenSize);
-//					FVector2D ScaledDelta = FVector2D(MoveDelta.X, MoveDelta.Y) / ScreenSize;
-//					if (FMath::Abs(ScaledDelta.X) >= 4.0 / ScreenSize.X)
-//					{
-//						TouchItem.bMoved = true;
-//						float Value = ScaledDelta.X * BaseTurnRate;
-//						AddControllerYawInput(Value);
-//					}
-//					if (FMath::Abs(ScaledDelta.Y) >= 4.0 / ScreenSize.Y)
-//					{
-//						TouchItem.bMoved = true;
-//						float Value = ScaledDelta.Y * BaseTurnRate;
-//						AddControllerPitchInput(Value);
-//					}
-//					TouchItem.Location = Location;
-//				}
-//				TouchItem.Location = Location;
-//			}
-//		}
-//	}
-//}
 
 void AMyProject2Character::MoveForward(float Value)
 {
